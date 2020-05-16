@@ -304,3 +304,121 @@ offset 0x200000.
 	...
 	0x3FFF004: Interrupt Completion for context 15871
 
+== PLIC Virtualization Extensions
+This section contains the PLIC virtualization extensions specification, which adds support for virtualization to the interrupt controller working in RISC-V systems.  PLIC must be capable of collecting and delivering virtual machine-directed interrupts separated from other interrupts.As so, an array of guest external interrupt lines were added to each Hart context. Each guest's external interrupt line is associated with a virtual machine running at VS-level.
+
+The maximum number of guests supported by PLIC depends on the value of GEILEIN, which is the number of bits implemented in hgeip and hgeie registers of a specific Hart as defined by the RISC-V privileged spec.
+
+Every PLIC with virtualization extensions, which is PLIC-Compliant standard PLIC should follow the implementations mentioned in sections below. 
+
+.Figure 1 RISC-V PLICv Interrupt Architecture Block Diagram
+
+image::Images/PLICv.jpg[]
+
+== Virtual PLIC Extended Parameters 
+Virtual PLIC operation parameter register blocks are defined in this spec, those are: +
+
+- *Virtual Interrupt Pending Bits registers:* +
+   The virtual interrupt pending status of each interrupt source. +
+   
+- *Virtual Interrupt Type registers:* +
+   The virtual interrupt type (physical or pure virtual) of each interrupt source. +
+
+== Extended Memory Map 
+
+*PLIC Memory Map*
+
+	base + 0x000000: Reserved (interrupt source 0 does not exist)
+	base + 0x000004: Interrupt source 1 priority
+	base + 0x000008: Interrupt source 2 priority
+	...
+	base + 0x000FFC: Interrupt source 1023 priority
+	base + 0x001000: Interrupt Pending bit 0-31
+	base + 0x00107C: Interrupt Pending bit 992-1023
+	base + 0x000000: Virtual Interrupt Pending bit 0-31
+	base + 0x000000: Virtual Interrupt Pending bit 992-1023
+	base + 0x000000: Virtual Interrupt Type bit 0-31
+	base + 0x000000: Virtual Interrupt Type bit 992-1023
+	...	
+	base + 0x002000: Enable bits for sources 0-31 on context 0
+	base + 0x002004: Enable bits for sources 32-63 on context 0
+	...
+	base + 0x00207F: Enable bits for sources 992-1023 on context 0
+	base + 0x002080: Enable bits for sources 0-31 on context 1
+	base + 0x002084: Enable bits for sources 32-63 on context 1	
+	...
+	base + 0x0020FF: Enable bits for sources 992-1023 on context 1
+	base + 0x002100: Enable bits for sources 0-31 on context 2
+	base + 0x002104: Enable bits for sources 32-63 on context 2	
+	...
+	base + 0x00217F: Enable bits for sources 992-1023 on context 2
+	...
+	base + 0x1F1F80: Enable bits for sources 0-31 on context 15871
+	base + 0x1F1F84: Enable bits for sources 32-63 on context 15871		
+	base + 0x1F1FFF: Enable bits for sources 992-1023 on context 15871
+	...	
+	base + 0x1FFFFC: Reserved
+	base + 0x200000: Priority threshold for context 0
+	base + 0x200004: Claim/complete for context 0
+	base + 0x200008: Reserved
+	...
+	base + 0x200FFC: Reserved
+	base + 0x201000: Priority threshold for context 1
+	base + 0x201004: Claim/complete for context 1
+	...
+	base + 0x3FFE000: Priority threshold for context 15871
+	base + 0x3FFE004: Claim/complete for context 15871
+	base + 0x3FFE008: Reserved
+	...	
+	base + 0x3FFFFFC: Reserved
+	
+Sections below describe the control register blocks of PLIC extended operation parameters.
+
+== Virtual Interrupt Pending Bits
+
+PLIC provides a mechanism to inject pure virtual interrupts into the guests running at VS-level, by writting to virtual interrupt pending bits register. This reduces the need to trap and emulate PLIC acesses as the `claim/complete` process is done directly by the guest. The virtual pending bits follows the same structure and size as the normal pending bits array. 
+
+The virtual pending bits can only affect the guest external lines interrupts state.
+
+A pending bit in the PLIC core can be cleared by setting the associated enable bit and type bit and then performing a claim.
+
+The base address of Virtual Interrupt Pending Bits block within PLIC Memory Map region is fixed at 0x000000.
+
+[cols="15%,20%,20%,45%"]
+|===
+| *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
+|Virtual Interrupt Pending Bits
+|Virtual Interrupt Pending Bit of Interrupt Source #0 to #N
+|1024 / 8 = 128(0x80) bytes
+|This is a continuously memory block contains PLIC Virtual Interrupt Pending Bits. Each Virtual Interrupt Pending Bit occupies 1-bit from this register block.
+|===
+
+*PLIC Virtual Interrupt Pending Bits Memory Map* +
+
+	0x000000: Virtual Interrupt Source #0 to #31 Pending Bits
+	...
+	0x000000: Virtual Interrupt Source #992 to #1023 Pending Bits
+
+== Virtual Interrupt Type Register 
+
+PLIC supports the injection of virtual interrupts, so this register is used to specify the interrupt source. By setting this bit high, the source is configured as a pure virtual, and the interrupt state depends on the virtual pending bit state. On the other hand, setting the bit low, the source behaves like a normal interrupt attached to a physical device.
+
+[cols="15%,20%,20%,45%"]
+|===
+| *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
+|Virtual Interrupt Type
+|Virtual Interrupt Type Bit of Interrupt Source #0 to #N
+|1024 / 8 = 128(0x80) bytes
+|This is the register of Pure Virtual Interrupt Type for each source
+Each Virtual Interrupt Type Bit occupies 1-bit from this register block.
+|===
+
+*PLIC Interrupt Pure Virtual Memory Map* +
+
+	0x000000: Virtual Interrupt Source #0 to #31 Type Bits
+	...
+	0x000000: Virtual Interrupt Source #992 to #1023 Type Bits
+
+== Virtual Interrupt Claim Process
+
+The claim process for virtual interrupts is identical to the normal claim, except from the pending bit clearing registers, which depends on the type of interrupt. When it's a `virtual interrupt`, only the `virtual pending bit` is cleared, otherwise it acts as a normal claim process.
