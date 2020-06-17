@@ -305,7 +305,7 @@ offset 0x200000.
 	0x3FFF004: Interrupt Completion for context 15871
 
 == PLIC Virtualization Extensions
-This section contains the PLIC virtualization extensions specification, which adds support for virtualization to the interrupt controller working in RISC-V systems.  PLIC must be capable of collecting and delivering virtual machine-directed interrupts separated from other interrupts.As so, an array of guest external interrupt lines were added to each Hart context. Each guest's external interrupt line is associated with a virtual machine running at VS-level.
+This section contains the PLIC virtualization extensions specification, which adds support for virtualization to the interrupt controller working in RISC-V systems.  PLIC must be capable of collecting and delivering virtual machine-directed interrupts separated from other interrupts. As so, an array of guest external interrupt lines were added to each Hart context. Each guest's external interrupt line is associated with a virtual machine running at VS-level.
 
 The maximum number of guests supported by PLIC depends on the value of GEILEIN, which is the number of bits implemented in hgeip and hgeie registers of a specific Hart as defined by the RISC-V privileged spec.
 
@@ -318,14 +318,12 @@ image::Images/PLICv.jpg[]
 == Virtual PLIC Extended Parameters 
 Virtual PLIC operation parameter register blocks are defined in this spec, those are: +
 
-- *Virtual Interrupt Pending Bits registers:* +
-   The virtual interrupt pending status of each interrupt source for each guest. +
+- *Virtual Interrupt Injection Registers:* +
+   The virtual interrupt injection registers for each guest. +
    
 - *Virtual Interrupt Type registers:* +
    The virtual interrupt type (physical or pure virtual) of each interrupt source for each guest. +
 
-- *Virtual Interrupt Priority registers:* +
-   The virtual interrupt priority of each interrupt source for each guest. +
 
 == Extended Memory Map 
 
@@ -371,69 +369,80 @@ Virtual PLIC operation parameter register blocks are defined in this spec, those
 	...	
 	base + 0x3FFFFFC: Reserved	
 	...
-	base + 0x400000: Reserved (virtual interrupt source 0 does not exist) context 0
-	base + 0x400004: Virtual Interrupt source 1 priority context 0
-	base + 0x400008: Virtual Interrupt source 2 priority context 0
+	base + 0x4000000: Virtual Injection Register 0 block 0
+	base + 0x4000004: Virtual Injection Register 1 block 0
+	base + 0x4000008: Virtual Injection Register 2 block 0
 	...
-	base + 0x400FFC: Virtual Interrupt source 1023 priority context  0
-	base + 0x401000: Virtual Interrupt Pending bit 0-31 context 0
-	base + 0x40107C: Virtual Interrupt Pending bit 992-1023 context 0
-	base + 0x402000: Virtual Interrupt Type bit 0-31 context 0
-	base + 0x40207C: Virtual Interrupt Type bit 992-1023 context 0
+	base + 0x400003C: Virtual Injection Register 15 block 0
+	base + 0x4000040: Virtual Injection Register 0 block 0
+	base + 0x4000044: Virtual Injection Register 1 block 1
+	base + 0x4000048: Virtual Injection Register 2 block 1 
 	...
-	base + 0x403000: Reserved (virtual interrupt source 0 does not exist) context 0
-	base + 0x403004: Virtual Interrupt source 1 priority context 1
-	base + 0x403008: Virtual Interrupt source 2 priority context 1
+	base + 0x400004C: Virtual Injection Register 15 block 1
 	...
-	base + 0x403FFC: Virtual Interrupt source 1023 priority context  1
-	base + 0x404000: Virtual Interrupt Pending bit 0-31 context 1
-	base + 0x40407C: Virtual Interrupt Pending bit 992-1023 context 1
-	base + 0x405000: Virtual Interrupt Type bit 0-31 context 1
-	base + 0x40507C: Virtual Interrupt Type bit 992-1023 context 1
+	base + 0x4000FC0: Virtual Injection Register 0 block 63
+	base + 0x4000FC4: Virtual Injection Register 1 block 63
+	base + 0x4000FC8: Virtual Injection Register 2 block 63 
 	...
-	base + 0x41FF00: Reserved (virtual interrupt source 0 does not exist) context 0
-	base + 0x41FF04: Virtual Interrupt source 1 priority context 15871
-	base + 0x41FF08: Virtual Interrupt source 2 priority context 15871
+	base + 0x4000FFC: Virtual Injection Register 15 block 63
 	...
-	base + 0x41FFFC: Virtual Interrupt source 1023 priority context  15871
-	base + 0x420F00: Virtual Interrupt Pending bit 0-31 context  15871
-	base + 0x420FFC: Virtual Interrupt Pending bit 992-1023 context  15871
-	base + 0x421000: Virtual Interrupt Type bit 0-31 context  15871
-	base + 0x421FFC: Virtual Interrupt Type bit 992-1023 context  15871
+	base + 0x4001000: Virtual Interrupt Type bit 0-31 context 0
+	base + 0x400107C: Virtual Interrupt Type bit 992-1023 context 0
+	base + 0x4001080: Virtual Interrupt Type bit 0-31 context 1
+	base + 0x40010FC: Virtual Interrupt Type bit 992-1023 context 1
+	...
+	base + 0x41F0F80: Virtual Interrupt Type bit 0-31 context  15871
+	base + 0x41F0FFC: Virtual Interrupt Type bit 992-1023 context  15871
 	...	
 	
 	
 Sections below describe the control register blocks of PLIC extended operation parameters.
 
-== Virtual Interrupt Pending Bits
+== Virtual Interrupt Injection Registers 
 
-PLIC provides a mechanism to inject pure virtual interrupts into the guests running at VS-level, by writting to virtual interrupt pending bits register. This reduces the need to trap and emulate PLIC acesses as the `claim/complete` process is done directly by the guest. The virtual pending bits follows the same structure and size as the normal pending bits array.
-When a read is performed, the output will be the logical OR of the `physical pending` and the logical AND of guest source `virtual type bit` with the guest source `virtual pending bit`. 
+PLIC has a 16 memory-mapped blocks with 16 32-bit width registers to inject virtual interrupts into a guest context. Each registers has 4 different fields, 10 bits `intId` field to specify the interrupt source, 1 bit `pending` to state the interrupt state and 10 bits `priority` field to specify the interrupt priority. The hypervisor controls the state of this registers for each virtual context. 
 
-The virtual pending bits can only affect the guest external lines interrupts state.
+The virtual Interrupt Injection registers can only affect the guest external lines interrupts state.
 
-A pending bit in the PLIC core can be cleared by setting the associated enable bit and type bit and then performing a claim.
+A pending bit the injection registers in the PLIC core can be cleared by setting the associated enable bit and type bit and then performing a claim.
+
+[source]
+----
+  plicvii register layout
+
+  bits    field
+  0       pending
+  1:10    intid[9:0]
+  11:21   priority[9:0]
+----
 
 [cols="15%,20%,20%,45%"]
 |===
 | *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
-|Virtual Interrupt Pending Bits
-|Virtual Interrupt Pending Bit of Interrupt Source #0 to #N for 15872 contexts
-|(1024 / 8) * 15872 = 2031616(0x1f0000) bytes
+|Virtual Interrupt Injection Registers
+|Virtual Interrupt Injection Registers from Block #0 to #15 for 15872 contexts
+|4 * 16 * 16 = 1024 (0x000400) bytes
 |This is a continuously memory block contains PLIC Virtual Interrupt Pending Bits for each guest. Each Virtual Interrupt Pending Bit occupies 1-bit from this register block.
 |===
 
-*PLIC Virtual Interrupt Pending Bits Memory Map* +
+*PLIC Virtual Interrupt Injection Registers Memory Map* +
 
-	0x401000: Virtual Interrupt Pending bit 0-31 context 0
-	0x40107C: Virtual Interrupt Pending bit 992-1023 context 0
-	0x404000: Virtual Interrupt Pending bit 0-31 context 1
-	0x40407C: Virtual Interrupt Pending bit 992-1023 context 1
+	base + 0x400000: List Registers 0 block 0
+	base + 0x400004: List Registers 1 block 0
+	base + 0x400008: List Registers 2 block 0
 	...
+	base + 0x40003C: List Registers 15 block 0
+	base + 0x400040: List Registers 0 block 0
+	base + 0x400044: List Registers 1 block 1
+	base + 0x400048: List Registers 2 block 1 
 	...
+	base + 0x40004C: List Registers 15 block 1
 	...
-	0x420F00: Virtual Interrupt Pending bit 0-31 context  15871
-	0x420FFC: Virtual Interrupt Pending bit 992-1023 context  15871
+	base + 0x400400: List Registers 0 block 15 
+	base + 0x400404: List Registers 1 block 15
+	base + 0x400408: List Registers 2 block 15 
+	...
+	base + 0x40043C: List Registers 15 block 15 
 
 == Virtual Interrupt Type Register 
 
@@ -466,37 +475,3 @@ Each Virtual Interrupt Type Bit occupies 1-bit from this register block.
 
 The claim process for virtual interrupts is identical to the normal claim, except from the pending bit clearing registers, which depends on the type of interrupt. When it's a `virtual interrupt`, only the `virtual pending bit` is cleared, otherwise it acts as a normal claim process.
 
-== Virtual Interrupt Priorities Register 
-
-If PLIC supports virtual Interrupt Priorities, then each PLIC interrupt source for each guest can be assigned a priority by writing to its 32-bit
-memory-mapped `virtual priority` register. It behaviour is identical to the normal priority register, but it affects the virtual interrupt delivery and is programmed by the guest.
-
-Each context has the possibility to include the 'virtual priorities registers'.
-
-[cols="15%,20%,20%,45%"]
-|===
-| *PLIC Register Block Name*| *Function*|*Register Block Size in Byte*| *Description*
-|Virtual Interrupt Source Priority
-|Virtual Interrupt Source Priority #0 to #1023
-|(1024 * 4) * 15871 = 65011712(0x3e00000) bytes
-|This is a continuously memory block which contains PLIC Interrupt Source Priority. Total 1024 Virtual Interrupt Source Priority 
-in this memory block for each guest context. Interrupt Source Priority #0 is reserved which indicates it does not exist.
-|===
-
-*PLIC Interrupt Source Priority Memory Map* +
-
-	0x400004: Virtual Interrupt source 1 priority context 0
-	0x400008: Virtual Interrupt source 2 priority context 0
-	...
-	0x400FFC: Virtual Interrupt source 1023 priority context  0
-	0x403004: Virtual Interrupt source 1 priority context 1
-	0x403008: Virtual Interrupt source 2 priority context 1
-	...
-	0x403FFC: Virtual Interrupt source 1023 priority context  1
-	...
-	...
-	...
-	0x41FF04: Virtual Interrupt source 1 priority context 15871
-	0x41FF08: Virtual Interrupt source 2 priority context 15871
-	...
-	0x41FFFC: Virtual Interrupt source 1023 priority context  15871
