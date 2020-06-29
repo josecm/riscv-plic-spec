@@ -435,22 +435,22 @@ A pending bit the injection registers in the PLIC core can be cleared by setting
 
 *PLIC Virtual Interrupt Injection Registers Memory Map* +
 
-	base + 0x400000: List Registers 0 block 0
-	base + 0x400004: List Registers 1 block 0
-	base + 0x400008: List Registers 2 block 0
+	base + 0x400000: Virtual Interrupt Injection Registers 0 block 0
+	base + 0x400004: Virtual Interrupt Injection Registers 1 block 0
+	base + 0x400008: Virtual Interrupt Injection Registers 2 block 0
 	...
-	base + 0x40003C: List Registers 15 block 0
-	base + 0x400040: List Registers 0 block 0
-	base + 0x400044: List Registers 1 block 1
-	base + 0x400048: List Registers 2 block 1 
+	base + 0x40003C: Virtual Interrupt Injection Registers 15 block 0
+	base + 0x400040: Virtual Interrupt Injection Registers 0 block 0
+	base + 0x400044: Virtual Interrupt Injection Registers 1 block 1
+	base + 0x400048: Virtual Interrupt Injection Registers 2 block 1 
 	...
-	base + 0x40004C: List Registers 15 block 1
+	base + 0x40004C: Virtual Interrupt Injection Registers 15 block 1
 	...
-	base + 0x400400: List Registers 0 block 15 
-	base + 0x400404: List Registers 1 block 15
-	base + 0x400408: List Registers 2 block 15 
+	base + 0x400400: Virtual Interrupt Injection Registers 0 block 15 
+	base + 0x400404: Virtual Interrupt Injection Registers 1 block 15
+	base + 0x400408: Virtual Interrupt Injection Registers 2 block 15 
 	...
-	base + 0x40043C: List Registers 15 block 15 
+	base + 0x40043C: Virtual Interrupt Injection Registers 15 block 15 
 
 == Virtual Interrupt Type Register 
 
