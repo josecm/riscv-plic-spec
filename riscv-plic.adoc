@@ -325,6 +325,9 @@ Virtual PLIC operation parameter register blocks are defined in this spec, those
    The virtual interrupt type (physical or pure virtual) of each interrupt source for each guest. +
 
 
+- *Virtual Interrupt Injection Control Registers* +
+   The virtual interrupt injection control registers of each virtual interrupt injection block.
+
 == Extended Memory Map 
 
 *PLIC Memory Map*
@@ -474,4 +477,41 @@ Each Virtual Interrupt Type Bit occupies 1-bit from this register block.
 == Virtual Interrupt Claim Process
 
 The claim process for virtual interrupts is identical to the normal claim, except from the pending bit clearing registers, which depends on the type of interrupt. When it's a `virtual interrupt`, only the `virtual pending bit` is cleared, otherwise it acts as a normal claim process.
+
+== Virtual Interrupt Injection Control Registers
+
+PLIC has a 32-bit width memory mapped control register for each injection block where the hypervisor can configure.
+
+There are 2 fields: `enable` field to configure which injection registers are enabled, 1-bit for each injection register. A `guestcontxid` to configure which context does the block influence.  
+
+The `virtual Interrupt injection control registers` are a read-write register. Only the hypervisor can acess these registers. 
+
+
+[source]
+----
+  plicvii register layout
+
+  bits    field
+  0:9     guestcontxid[9:0]
+  10:25   intid[15:0]
+  26:31   rev[6:0]
+----
+
+[cols="15%,20%,20%,45%"]
+|===
+| *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
+|Virtual Interrupt Injection Registers
+|Virtual Interrupt Injection Registers from Block #0 to #15 for 15872 contexts
+|4 * 16 * 16 = 1024 (0x000400) bytes
+|This is a continuously memory block contains PLIC Virtual Interrupt Pending Bits for each guest. Each Virtual Interrupt Pending Bit occupies 1-bit from this register block.
+|===
+
+*PLIC Virtual Interrupt Injection Control Registers Memory Map* +
+
+	base + 0x400000: Virtual Interrupt Injection Control block 0
+	base + 0x400004: Virtual Interrupt Injection Control block 1
+	base + 0x400008: Virtual Interrupt Injection Control block 2
+	...
+	base + 0x40003C: Virtual Interrupt Injection Control block 15
+
 
