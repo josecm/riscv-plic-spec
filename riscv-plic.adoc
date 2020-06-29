@@ -324,6 +324,8 @@ Virtual PLIC operation parameter register blocks are defined in this spec, those
 - *Virtual Interrupt Type registers:* +
    The virtual interrupt type (physical or pure virtual) of each interrupt source for each guest. +
 
+- *Virtual Interrupt Injection Status Registers* +
+   The virtual interrupt injection status registers of virtual each interrupt injection block. +
 
 - *Virtual Interrupt Injection Control Registers* +
    The virtual interrupt injection control registers of each virtual interrupt injection block.
@@ -477,6 +479,34 @@ Each Virtual Interrupt Type Bit occupies 1-bit from this register block.
 == Virtual Interrupt Claim Process
 
 The claim process for virtual interrupts is identical to the normal claim, except from the pending bit clearing registers, which depends on the type of interrupt. When it's a `virtual interrupt`, only the `virtual pending bit` is cleared, otherwise it acts as a normal claim process.
+
+== Virtual Interrupt Injection Status Registers
+
+
+PLIC has a 32-bit width memory mapped register for each injection block to provide the hypervisor a mean to infer which `injection registers` are available for delivering guest virtual interrupts.
+
+The `virtual Interrupt injection status registers` is a read-only register. Where each bit represents the injection register state :
+
+- *1 -* Injection register available.
+- *0 -* Injection register not available.
+
+
+[cols="15%,20%,20%,45%"]
+|===
+| *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
+|Virtual Interrupt Injection Status Registers
+|Virtual Interrupt Injection Status Registers from Block #0 to #15 for 15872 contexts
+|4 * 16 = 64 (0x000100) bytes
+|This is a continuously memory block contains Virtual Interrupt Injection Status Bits for each injection block. Each Virtual Interrupt  Injection Status occupies 1-bit from this register block.
+|===
+
+*PLIC Virtual Interrupt Injection Status Registers Memory Map* +
+
+	base + 0x400000: Interrupt Injection Status Register block 0
+	base + 0x400004: Interrupt Injection Status Register block 1
+	base + 0x400008: Interrupt Injection Status Register block 2
+	...
+	base + 0x400400: Interrupt Injection Status Register block 15 
 
 == Virtual Interrupt Injection Control Registers
 
