@@ -371,24 +371,28 @@ Virtual PLIC operation parameter register blocks are defined in this spec, those
 	...	
 	base + 0x3FFFFFC: Reserved	
 	...
-	base + 0x4000000: Virtual Interrupt Injection Registers 0 block 0
-	base + 0x4000004: Virtual Interrupt Injection Registers 1 block 0
-	base + 0x4000008: Virtual Interrupt Injection Registers 2 block 0
+	base + 0x4000000: Block ID Register bit 0-31 context 0
+	base + 0x4000004: Block ID Register bit 0-31 context 1
+	base + 0x4000008: Block ID Register bit 0-31 context 2
 	...
-	base + 0x4000FFC: Virtual Interrupt Injection Registers 1023 block 0
-	base + 0x4001000: Virtual Interrupt Injection Registers 0 block 1
-	base + 0x4001004: Virtual Interrupt Injection Registers 1 block 1
-	base + 0x4001008: Virtual Interrupt Injection Registers 2 block 1 
+	base + 0x400F800: Block ID Register bit 0-31 context 15872
 	...
-	base + 0x4001FFC: Virtual Interrupt Injection Registers 1023 block 1
+	base + 0x4010000: Virtual Interrupt Injection Registers 0 block 1
+	base + 0x4010004: Virtual Interrupt Injection Registers 1 block 1
+	base + 0x4010008: Virtual Interrupt Injection Registers 2 block 1
 	...
-	base + 0x4001000: Virtual Interrupt Type bit 0-31 context 0
-	base + 0x400107C: Virtual Interrupt Type bit 992-1023 context 0
-	base + 0x4001080: Virtual Interrupt Type bit 0-31 context 1
-	base + 0x40010FC: Virtual Interrupt Type bit 992-1023 context 1
+	base + 0x4010FFC: Virtual Interrupt Injection Registers 1023 block 1
+	base + 0x4011000: Virtual Interrupt Injection Registers 0 block 2
+	base + 0x4011004: Virtual Interrupt Injection Registers 1 block 2
+	base + 0x4011008: Virtual Interrupt Injection Registers 2 block 2 
 	...
-	base + 0x41F0F80: Virtual Interrupt Type bit 0-31 context  15871
-	base + 0x41F0FFC: Virtual Interrupt Type bit 992-1023 context  15871
+	base + 0x4011FFC: Virtual Interrupt Injection Registers 1023 block 2
+	...
+	base + 0x40FF000: Virtual Interrupt Injection Registers 0 block 240
+	base + 0x40FF004: Virtual Interrupt Injection Registers 1 block 240
+	base + 0x40FF008: Virtual Interrupt Injection Registers 2 block 240 
+	...
+	base + 0x40FFFFC: Virtual Interrupt Injection Registers 1023 block 240
 	...	
 	
 	
@@ -396,9 +400,7 @@ Sections below describe the control register blocks of PLIC extended operation p
 
 == Virtual Interrupt Injection Registers 
 
-PLIC has a 16 memory-mapped blocks with 32-bit width registers to inject virtual interrupts into a guest context. Each registers has 4 different fields, 10 bits `intId` field to specify the interrupt source, 1 bit `inFLight` to state the interrupt state and 10 bits `priority` field to specify the interrupt priority. The hypervisor controls the state of this registers for each virtual context. 
-
-The virtual Interrupt Injection registers can only affect the guest external lines interrupts state.
+PLIC has a 16 memory-mapped blocks with 32-bit width registers to inject virtual interrupts into any context. Each registers has 4 different fields, 10 bits `intId` field to specify the interrupt source, 1 bit `inFLight` to state the interrupt state and 10 bits `priority` field to specify the interrupt priority. The hypervisor controls the state of this registers for each context. 
 
 A virtual interrupt is pending when field `intid > 0` and the `inFlight` is not set.
 
@@ -422,23 +424,29 @@ PLIC implementations with virtualization support must implement at least one inj
 |===
 | *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
 |Virtual Interrupt Injection Registers
-|Virtual Interrupt Injection Registers from Block #0 to #N for 15872 contexts
+|Virtual Interrupt Injection Registers from Block #0 to #63 for 15872 contexts
 |4096 (0x001000) bytes for each block
 |This is a continuously memory block contains PLIC Virtual Interrupt Pending Bits for each guest. Each Injection Registers occupies 32-bit from this register block.
 |===
 
 *PLIC Virtual Interrupt Injection Registers Memory Map* +
 
-	base + 0x4000000: Virtual Interrupt Injection Registers 0 block 0
-	base + 0x4000004: Virtual Interrupt Injection Registers 1 block 0
-	base + 0x4000008: Virtual Interrupt Injection Registers 2 block 0
+	base + 0x4010000: Virtual Interrupt Injection Registers 0 block 1
+	base + 0x4010004: Virtual Interrupt Injection Registers 1 block 1
+	base + 0x4010008: Virtual Interrupt Injection Registers 2 block 1
 	...
-	base + 0x4000FFC: Virtual Interrupt Injection Registers 1023 block 0
-	base + 0x4001000: Virtual Interrupt Injection Registers 0 block 1
-	base + 0x4001004: Virtual Interrupt Injection Registers 1 block 1
-	base + 0x4001008: Virtual Interrupt Injection Registers 2 block 1 
+	base + 0x4010FFC: Virtual Interrupt Injection Registers 1023 block 1
+	base + 0x4011000: Virtual Interrupt Injection Registers 0 block 2
+	base + 0x4011004: Virtual Interrupt Injection Registers 1 block 2
+	base + 0x4011008: Virtual Interrupt Injection Registers 2 block 2 
 	...
-	base + 0x4001FFC: Virtual Interrupt Injection Registers 1023 block 1
+	base + 0x4011FFC: Virtual Interrupt Injection Registers 1023 block 2
+	...
+	base + 0x40FF000: Virtual Interrupt Injection Registers 0 block 240
+	base + 0x40FF004: Virtual Interrupt Injection Registers 1 block 240
+	base + 0x40FF008: Virtual Interrupt Injection Registers 2 block 240 
+	...
+	base + 0x40FFFFC: Virtual Interrupt Injection Registers 1023 block 240
 
 == Virtual Context Block ID Register 
 
@@ -451,19 +459,19 @@ Setting this field `zero` indicates that no injection block is attached to the g
 | *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
 |Virtual Context Block ID Register
 |Virtual Context Block ID Register for each virtual contexts
-|(1024 / 8) * 15872 = 2031616(0x1f0000) bytes
+|(4) * 15872 = 63488(0xf800) bytes
 |This is the Virtual Context Block ID Register for each guest.
 |===
 
 *PLIC Interrupt Pure Virtual Memory Map* +
 
-	0x4200000: Block ID Register bit 0-31 virtual context 0
-	0x4201000: Block ID Register bit 0-31 virtual context 1
-	0x4202000: Block ID Register bit 0-31 virtual context 2
-	0x4203000: Block ID Register bit 0-31 virtual context 3
-
-
-== Virtual Interrupt Claim/Complete Process
+	base + 0x4000000: Block ID Register bit 0-31 context 0
+	base + 0x4000004: Block ID Register bit 0-31 context 1
+	base + 0x4000008: Block ID Register bit 0-31 context 2
+	...
+	base + 0x400F800: Block ID Register bit 0-31 context 15872
+	
+== VirtualInterrupt Claim/Complete Process
 
 When a claim is performed, the `inFlight` bit is set indicating that the interrupt is active.
 When a complete is performed, the interrupt `int_id` field is set and the `inFlight` bit is cleared. 
