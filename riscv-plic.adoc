@@ -323,15 +323,9 @@ Virtual PLIC operation parameter register blocks are defined in this spec, those
    
 - *Virtual Interrupt Type registers:* +
    The virtual interrupt type (physical or pure virtual) of each interrupt source for each guest. +
-
-- *Virtual Interrupt Injection Status Registers* +
-   The virtual interrupt injection status registers of virtual each interrupt injection block. +
-
-- *Virtual Interrupt Injection Info Registers* +
-   The virtual interrupt injection info registers of each virtual interrupt injection block. +
-
-- *Virtual Interrupt Injection Control Registers* +
-   The virtual interrupt injection control registers of each virtual interrupt injection block.
+   
+- *Virtual Interrupt Guest Block ID registers:* +
+   The virtual interrupt block id of each guest. +
 
 == Extended Memory Map 
 
@@ -377,22 +371,16 @@ Virtual PLIC operation parameter register blocks are defined in this spec, those
 	...	
 	base + 0x3FFFFFC: Reserved	
 	...
-	base + 0x4000000: Virtual Injection Register 0 block 0
-	base + 0x4000004: Virtual Injection Register 1 block 0
-	base + 0x4000008: Virtual Injection Register 2 block 0
+	base + 0x4000000: Virtual Interrupt Injection Registers 0 block 0
+	base + 0x4000004: Virtual Interrupt Injection Registers 1 block 0
+	base + 0x4000008: Virtual Interrupt Injection Registers 2 block 0
 	...
-	base + 0x400003C: Virtual Injection Register 15 block 0
-	base + 0x4000040: Virtual Injection Register 0 block 0
-	base + 0x4000044: Virtual Injection Register 1 block 1
-	base + 0x4000048: Virtual Injection Register 2 block 1 
+	base + 0x4000FFC: Virtual Interrupt Injection Registers 1023 block 0
+	base + 0x4001000: Virtual Interrupt Injection Registers 0 block 1
+	base + 0x4001004: Virtual Interrupt Injection Registers 1 block 1
+	base + 0x4001008: Virtual Interrupt Injection Registers 2 block 1 
 	...
-	base + 0x400004C: Virtual Injection Register 15 block 1
-	...
-	base + 0x4000FC0: Virtual Injection Register 0 block 63
-	base + 0x4000FC4: Virtual Injection Register 1 block 63
-	base + 0x4000FC8: Virtual Injection Register 2 block 63 
-	...
-	base + 0x4000FFC: Virtual Injection Register 15 block 63
+	base + 0x4001FFC: Virtual Interrupt Injection Registers 1023 block 1
 	...
 	base + 0x4001000: Virtual Interrupt Type bit 0-31 context 0
 	base + 0x400107C: Virtual Interrupt Type bit 992-1023 context 0
@@ -408,18 +396,24 @@ Sections below describe the control register blocks of PLIC extended operation p
 
 == Virtual Interrupt Injection Registers 
 
-PLIC has a 16 memory-mapped blocks with 16 32-bit width registers to inject virtual interrupts into a guest context. Each registers has 4 different fields, 10 bits `intId` field to specify the interrupt source, 1 bit `pending` to state the interrupt state and 10 bits `priority` field to specify the interrupt priority. The hypervisor controls the state of this registers for each virtual context. 
+PLIC has a 16 memory-mapped blocks with 32-bit width registers to inject virtual interrupts into a guest context. Each registers has 4 different fields, 10 bits `intId` field to specify the interrupt source, 1 bit `inFLight` to state the interrupt state and 10 bits `priority` field to specify the interrupt priority. The hypervisor controls the state of this registers for each virtual context. 
 
 The virtual Interrupt Injection registers can only affect the guest external lines interrupts state.
 
-A pending bit the injection registers in the PLIC core can be cleared by setting the associated enable bit and type bit and then performing a claim.
+A virtual interrupt is pending when field `intid > 0` and the `inFlight` is not set.
+
+The bit `inFlight` is set when the virtual interrupt is pending and a claim is performed, indicating that the interrupt is active and preventing the virtual interrupt to be pending.
+
+The `injection block` is a continuously memory block with 4KB ( page size).
+
+PLIC implementations with virtualization support must implement at least one injection register for each block.
 
 [source]
 ----
-  plicvii register layout
+  plicvi register layout
 
   bits    field
-  0       pending
+  0       inFLight
   1:10    intid[9:0]
   11:21   priority[9:0]
 ----
@@ -428,155 +422,52 @@ A pending bit the injection registers in the PLIC core can be cleared by setting
 |===
 | *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
 |Virtual Interrupt Injection Registers
-|Virtual Interrupt Injection Registers from Block #0 to #15 for 15872 contexts
-|4 * 16 * 16 = 1024 (0x000400) bytes
-|This is a continuously memory block contains PLIC Virtual Interrupt Pending Bits for each guest. Each Virtual Interrupt Pending Bit occupies 1-bit from this register block.
+|Virtual Interrupt Injection Registers from Block #0 to #N for 15872 contexts
+|4096 (0x001000) bytes for each block
+|This is a continuously memory block contains PLIC Virtual Interrupt Pending Bits for each guest. Each Injection Registers occupies 32-bit from this register block.
 |===
 
 *PLIC Virtual Interrupt Injection Registers Memory Map* +
 
-	base + 0x400000: Virtual Interrupt Injection Registers 0 block 0
-	base + 0x400004: Virtual Interrupt Injection Registers 1 block 0
-	base + 0x400008: Virtual Interrupt Injection Registers 2 block 0
+	base + 0x4000000: Virtual Interrupt Injection Registers 0 block 0
+	base + 0x4000004: Virtual Interrupt Injection Registers 1 block 0
+	base + 0x4000008: Virtual Interrupt Injection Registers 2 block 0
 	...
-	base + 0x40003C: Virtual Interrupt Injection Registers 15 block 0
-	base + 0x400040: Virtual Interrupt Injection Registers 0 block 0
-	base + 0x400044: Virtual Interrupt Injection Registers 1 block 1
-	base + 0x400048: Virtual Interrupt Injection Registers 2 block 1 
+	base + 0x4000FFC: Virtual Interrupt Injection Registers 1023 block 0
+	base + 0x4001000: Virtual Interrupt Injection Registers 0 block 1
+	base + 0x4001004: Virtual Interrupt Injection Registers 1 block 1
+	base + 0x4001008: Virtual Interrupt Injection Registers 2 block 1 
 	...
-	base + 0x40004C: Virtual Interrupt Injection Registers 15 block 1
-	...
-	base + 0x400400: Virtual Interrupt Injection Registers 0 block 15 
-	base + 0x400404: Virtual Interrupt Injection Registers 1 block 15
-	base + 0x400408: Virtual Interrupt Injection Registers 2 block 15 
-	...
-	base + 0x40043C: Virtual Interrupt Injection Registers 15 block 15 
+	base + 0x4001FFC: Virtual Interrupt Injection Registers 1023 block 1
 
-== Virtual Interrupt Type Register 
+== Virtual Context Block ID Register 
 
-PLIC supports the injection of virtual interrupts, so this register is used to specify the interrupt source. By setting this bit high, the source is configured as a pure virtual, and the interrupt state depends on the virtual pending bit state. On the other hand, setting the bit low, the source behaves like a normal interrupt attached to a physical device. The `type` registers are accessed as a contiguous array of 32-bit registers. 
+Each guest context has one register to specify the block source for virtual interrupt injection.
 
-The hypervisor is responsible for configuring the `type` registers for each guest and the guest should not be allowed to access it.
-
+Setting this field `zero` indicates that no injection block is attached to the guest context.
 
 [cols="15%,20%,20%,45%"]
 |===
 | *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
-|Virtual Interrupt Type
-|Virtual Interrupt Type Bit of Interrupt Source #0 to #N for each 15872 contexts
+|Virtual Context Block ID Register
+|Virtual Context Block ID Register for each virtual contexts
 |(1024 / 8) * 15872 = 2031616(0x1f0000) bytes
-|This is the register of Virtual Interrupt Type for each source of each guest
-Each Virtual Interrupt Type Bit occupies 1-bit from this register block.
+|This is the Virtual Context Block ID Register for each guest.
 |===
 
 *PLIC Interrupt Pure Virtual Memory Map* +
 
-	0x402000: Virtual Interrupt Type bit 0-31 context 0
-	0x40207C: Virtual Interrupt Type bit 992-1023 context 0
-	0x405000: Virtual Interrupt Type bit 0-31 context 1
-	0x40507C: Virtual Interrupt Type bit 992-1023 context 1
-	...
-	0x421000: Virtual Interrupt Type bit 0-31 context  15871
-	0x421FFC: Virtual Interrupt Type bit 992-1023 context  15871
-
-== Virtual Interrupt Claim Process
-
-The claim process for virtual interrupts is identical to the normal claim, except from the pending bit clearing registers, which depends on the type of interrupt. When it's a `virtual interrupt`, only the `virtual pending bit` is cleared, otherwise it acts as a normal claim process.
-
-== Virtual Interrupt Injection Status Registers
+	0x4200000: Block ID Register bit 0-31 virtual context 0
+	0x4201000: Block ID Register bit 0-31 virtual context 1
+	0x4202000: Block ID Register bit 0-31 virtual context 2
+	0x4203000: Block ID Register bit 0-31 virtual context 3
 
 
-PLIC has a 32-bit width memory mapped register for each injection block to provide the hypervisor a mean to infer which `injection registers` are available for delivering guest virtual interrupts.
+== Virtual Interrupt Claim/Complete Process
 
-The `virtual Interrupt injection status registers` is a read-only register. Where each bit represents the injection register state :
-
-- *1 -* Injection register available.
-- *0 -* Injection register not available.
+When a claim is performed, the `inFlight` bit is set indicating that the interrupt is active.
+When a complete is performed, the interrupt `int_id` field is set and the `inFlight` bit is cleared. 
 
 
-[cols="15%,20%,20%,45%"]
-|===
-| *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
-|Virtual Interrupt Injection Status Registers
-|Virtual Interrupt Injection Status Registers from Block #0 to #15 for 15872 contexts
-|4 * 16 = 64 (0x000100) bytes
-|This is a continuously memory block contains Virtual Interrupt Injection Status Bits for each injection block. Each Virtual Interrupt  Injection Status occupies 1-bit from this register block.
-|===
-
-*PLIC Virtual Interrupt Injection Status Registers Memory Map* +
-
-	base + 0x400000: Interrupt Injection Status Register block 0
-	base + 0x400004: Interrupt Injection Status Register block 1
-	base + 0x400008: Interrupt Injection Status Register block 2
-	...
-	base + 0x400400: Interrupt Injection Status Register block 15 
-
-== Virtual Interrupt Injection Info Registers
-
-PLIC has a 32-bit width memory mapped register for each injection block to provide the hypervisor information about how many list registers are implemented on a certain block and the maximum priority levels.
-
-The `virtual Interrupt injection status registers` is a read-only register.
-
-[source]
-----
-  plicvii register layout
-
-  bits    field
-  0:4     ninjregs[4:0]
-  4:14    maxprio[9:0]
-  14:31   rev[15:0]
-----
-
-[cols="15%,20%,20%,45%"]
-|===
-| *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
-|Virtual Interrupt Injection Registers
-|Virtual Interrupt Injection Registers from Block #0 to #15 for 15872 contexts
-|4 * 16 * 16 = 1024 (0x000400) bytes
-|This is a continuously memory block contains PLIC Virtual Interrupt Pending Bits for each guest. Each Virtual Interrupt Pending Bit occupies 1-bit from this register block.
-|===
-*PLIC Virtual Interrupt Injection Info Registers Memory Map* +
-
-	base + 0x400000: Interrupt Injection Status Register block 0
-	base + 0x400004: Interrupt Injection Status Register block 1
-	base + 0x400008: Interrupt Injection Status Register block 2
-	...
-	base + 0x400400: Interrupt Injection Status Register block 15 
-
-== Virtual Interrupt Injection Control Registers
-
-PLIC has a 32-bit width memory mapped control register for each injection block where the hypervisor can configure.
-
-There are 2 fields: `enable` field to configure which injection registers are enabled, 1-bit for each injection register. A `guestcontxid` to configure which context does the block influence.  
-
-The `virtual Interrupt injection control registers` are a read-write register. Only the hypervisor can acess these registers. 
-
-
-[source]
-----
-  plicvii register layout
-
-  bits    field
-  0:9     guestcontxid[9:0]
-  10:25   intid[15:0]
-  26:31   rev[6:0]
-----
-
-[cols="15%,20%,20%,45%"]
-|===
-| *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
-|Virtual Interrupt Injection Registers
-|Virtual Interrupt Injection Registers from Block #0 to #15 for 15872 contexts
-|4 * 16 * 16 = 1024 (0x000400) bytes
-|This is a continuously memory block contains PLIC Virtual Interrupt Pending Bits for each guest. Each Virtual Interrupt Pending Bit occupies 1-bit from this register block.
-|===
-
-*PLIC Virtual Interrupt Injection Control Registers Memory Map* +
-
-	base + 0x400000: Virtual Interrupt Injection Control block 0
-	base + 0x400004: Virtual Interrupt Injection Control block 1
-	base + 0x400008: Virtual Interrupt Injection Control block 2
-	...
-	base + 0x40003C: Virtual Interrupt Injection Control block 15
 
 
