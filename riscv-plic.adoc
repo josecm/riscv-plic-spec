@@ -319,13 +319,10 @@ image::Images/PLICv.jpg[]
 Virtual PLIC operation parameter register blocks are defined in this spec, those are: +
 
 - *Virtual Interrupt Injection Registers:* +
-   The virtual interrupt injection registers for each guest. +
-   
-- *Virtual Interrupt Type registers:* +
-   The virtual interrupt type (physical or pure virtual) of each interrupt source for each guest. +
+   The virtual interrupt injection registers for each injection block . +
    
 - *Virtual Interrupt Guest Block ID registers:* +
-   The virtual interrupt block id of each guest. +
+   The virtual interrupt block id of each context. +
 
 == Extended Memory Map 
 
@@ -400,19 +397,19 @@ Sections below describe the control register blocks of PLIC extended operation p
 
 == Virtual Interrupt Injection Registers 
 
-PLIC has a 16 memory-mapped blocks with 32-bit width registers to inject virtual interrupts into any context. Each registers has 4 different fields, 10 bits `intId` field to specify the interrupt source, 1 bit `inFLight` to state the interrupt state and 10 bits `priority` field to specify the interrupt priority. The hypervisor controls the state of this registers for each context. 
+PLIC has a 240 memory-mapped blocks with 32-bit width registers to inject virtual interrupts into any context. Each registers has 4 different fields, 10 bits `intId` field to specify the interrupt source, 1 bit `inFLight` to state the interrupt state and 10 bits `priority` field to specify the interrupt priority. The hypervisor controls the state of this registers for each context. 
 
 A virtual interrupt is pending when field `intid > 0` and the `inFlight` is not set.
 
-The bit `inFlight` is set when the virtual interrupt is pending and a claim is performed, indicating that the interrupt is active and preventing the virtual interrupt to be pending.
+The bit `inFlight` is set when the virtual interrupt is pending and a claim is performed, indicating that the interrupt is active and preventing the virtual interrupt from being pending.
 
-The `injection block` is a continuously memory block with 4KB ( page size).
+The `injection block` is a continuously memory block with 4KB (page size) with 1024 maximum number of injection registers.
 
 PLIC implementations with virtualization support must implement at least one injection register for each block.
 
 [source]
 ----
-  plicvi register layout
+  plicvii register layout
 
   bits    field
   0       inFLight
@@ -424,9 +421,9 @@ PLIC implementations with virtualization support must implement at least one inj
 |===
 | *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
 |Virtual Interrupt Injection Registers
-|Virtual Interrupt Injection Registers from Block #0 to #63 for 15872 contexts
-|4096 (0x001000) bytes for each block
-|This is a continuously memory block contains PLIC Virtual Interrupt Pending Bits for each guest. Each Injection Registers occupies 32-bit from this register block.
+|Virtual Interrupt Injection Registers from Block #0 to #240 for 15872 contexts
+|240 * 4096 = 983040 (0xf0000) bytes for each block
+|This is a continuously memory block contains PLIC Virtual Interrupt Injection Registers for each block. Each Injection Registers occupies 32-bit from the register block and total 240 Injection Blocks. Each block ocupies 4KB (page size). 
 |===
 
 *PLIC Virtual Interrupt Injection Registers Memory Map* +
@@ -450,17 +447,17 @@ PLIC implementations with virtualization support must implement at least one inj
 
 == Virtual Context Block ID Register 
 
-Each guest context has one register to specify the block source for virtual interrupt injection.
+Each context has one register to specify the block source for virtual interrupt injection.
 
-Setting this field `zero` indicates that no injection block is attached to the guest context.
+Setting this field `zero` indicates that no injection block is attached to context.
 
 [cols="15%,20%,20%,45%"]
 |===
 | *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
 |Virtual Context Block ID Register
-|Virtual Context Block ID Register for each virtual contexts
-|(4) * 15872 = 63488(0xf800) bytes
-|This is the Virtual Context Block ID Register for each guest.
+|Virtual Context Block ID Register for each context
+|4 * 15872 = 63488(0xf800) bytes
+|This is the Virtual Context Block ID Register for each context.
 |===
 
 *PLIC Interrupt Pure Virtual Memory Map* +
@@ -470,11 +467,12 @@ Setting this field `zero` indicates that no injection block is attached to the g
 	base + 0x4000008: Block ID Register bit 0-31 context 2
 	...
 	base + 0x400F800: Block ID Register bit 0-31 context 15872
-	
-== VirtualInterrupt Claim/Complete Process
+
+== Virtual Interrupt Claim/Complete Process
 
 When a claim is performed, the `inFlight` bit is set indicating that the interrupt is active.
-When a complete is performed, the interrupt `int_id` field is set and the `inFlight` bit is cleared. 
+
+When a complete is performed, the interrupt `int_id` field is set to `zero` and the `inFlight` bit is cleared. 
 
 
 
