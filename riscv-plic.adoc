@@ -318,11 +318,11 @@ image::Images/PLICv.jpg[]
 == Virtual PLIC Extended Parameters 
 Virtual PLIC operation parameter register blocks are defined in this spec, those are: +
 
+- *Virtual Interrupt Virtual Block ID registers:* +
+   The virtual interrupt block id of each context. +
+
 - *Virtual Interrupt Injection Registers:* +
    The virtual interrupt injection registers for each injection block . +
-   
-- *Virtual Interrupt Guest Block ID registers:* +
-   The virtual interrupt block id of each context. +
 
 == Extended Memory Map 
 
@@ -372,7 +372,7 @@ Virtual PLIC operation parameter register blocks are defined in this spec, those
 	base + 0x4000004: Block ID Register bit 0-31 context 1
 	base + 0x4000008: Block ID Register bit 0-31 context 2
 	...
-	base + 0x400F800: Block ID Register bit 0-31 context 15872
+	base + 0x400F7FC: Block ID Register bit 0-31 context 15871
 	...
 	base + 0x4010000: Virtual Interrupt Injection Registers 0 block 1
 	base + 0x4010004: Virtual Interrupt Injection Registers 1 block 1
@@ -394,6 +394,36 @@ Virtual PLIC operation parameter register blocks are defined in this spec, those
 	
 	
 Sections below describe the control register blocks of PLIC extended operation parameters.
+
+
+== Virtual Context Block ID Register 
+
+Each context has one register to specify the block source for virtual interrupt injection.
+
+Setting this field zero indicates that no injection block is attached to context.
+
+[cols="15%,20%,20%,45%"]
+|===
+| *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
+|Virtual Context Block ID Register
+|Virtual Context Block ID Register for each context
+|4 * 15872 = 63488(0xf800) bytes
+|This is the Virtual Context Block ID Register for each context.
+|===
+
+*PLIC Interrupt Pure Virtual Memory Map* +
+
+	base + 0x4000000: Block ID Register bit 0-31 context 0
+	base + 0x4000004: Block ID Register bit 0-31 context 1
+	base + 0x4000008: Block ID Register bit 0-31 context 2
+	...
+	base + 0x400F7FC: Block ID Register bit 0-31 context 15871
+
+== Virtual Interrupt Claim/Complete Process
+
+When a claim is performed, the `inFlight` bit is set indicating that the interrupt is active.
+
+When a complete is performed, the interrupt `int_id` field is set to zero and the `inFlight` bit is cleared. 
 
 == Virtual Interrupt Injection Registers 
 
@@ -444,36 +474,5 @@ PLIC implementations with virtualization support must implement at least one inj
 	base + 0x40FF008: Virtual Interrupt Injection Registers 2 block 240 
 	...
 	base + 0x40FFFFC: Virtual Interrupt Injection Registers 1023 block 240
-
-== Virtual Context Block ID Register 
-
-Each context has one register to specify the block source for virtual interrupt injection.
-
-Setting this field `zero` indicates that no injection block is attached to context.
-
-[cols="15%,20%,20%,45%"]
-|===
-| *PLIC Register Block Name* | *Function*|*Register Block Size in Byte*| *Description*
-|Virtual Context Block ID Register
-|Virtual Context Block ID Register for each context
-|4 * 15872 = 63488(0xf800) bytes
-|This is the Virtual Context Block ID Register for each context.
-|===
-
-*PLIC Interrupt Pure Virtual Memory Map* +
-
-	base + 0x4000000: Block ID Register bit 0-31 context 0
-	base + 0x4000004: Block ID Register bit 0-31 context 1
-	base + 0x4000008: Block ID Register bit 0-31 context 2
-	...
-	base + 0x400F800: Block ID Register bit 0-31 context 15872
-
-== Virtual Interrupt Claim/Complete Process
-
-When a claim is performed, the `inFlight` bit is set indicating that the interrupt is active.
-
-When a complete is performed, the interrupt `int_id` field is set to `zero` and the `inFlight` bit is cleared. 
-
-
 
 
